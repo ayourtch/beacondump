@@ -126,9 +126,9 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header,
       memset(bssid, 0, sizeof(bssid));
     }
 
-    printf("%20lld len %-5d freq %4d rate %-5d s/n: %d %d BSS %02x%02x%02x%02x%02x%02x | %s\n",
+    printf("%20lld len %-5d freq %4d rate %-5d s/n: %d %d BSS %02x%02x%02x%02x%02x%02x seq %03x | %s\n",
                  curr_ts, header->len, *pfreq, 500*(*prate), *psignal, *pnoise,
-                 bss[0],bss[1],bss[2],bss[3],bss[4],bss[5], bssid);
+                 bss[0],bss[1],bss[2],bss[3],bss[4],bss[5], *pseq >> 4, bssid);
     fflush(stdout);
     
     // hex((void *)packet, header->len);
