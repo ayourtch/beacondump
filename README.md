@@ -39,9 +39,6 @@ Here's some example output:
     1675716921549561 channel   36 signal: -92 noise: -97 BSS bcaabbccddb4 | CHEFSTABLE
     ^C
 
-The first column is a 64-bit timestamp, then the length of the packet, then the frequency
-and the rate the beacon is sent at, then signal and noise in dBm, then BSSID, then the SSID.
-
 # Caveats
 
 It's a quick hack I wrote over a course of a few hours, so I made quite some big shortcuts
