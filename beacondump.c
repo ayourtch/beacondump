@@ -74,6 +74,16 @@ void hex(void *ptr, int len) {
   }
 }
 
+char **EXCLUDE_SSID = NULL;
+int EXCLUDE_SSID_COUNT = 0;
+
+char *BLACK = "\x1b[30m";
+char *GREEN = "\x1b[32m";
+char *YELLOW= "\x1b[33m";
+char *RED = "\x1b[31m";
+char *BRIGHT_RED = "\x1b[31;1m";
+char *RESET= "\x1b[0m";
+
 void got_packet(u_char *args, const struct pcap_pkthdr *header,
 	    const u_char *packet) {
     uint16_t *pfreq;
@@ -92,6 +102,7 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header,
     uint16_t *pseq = (uint16_t *)(bss+6);
     uint8_t *ptag = bss+20;
     char bssid[256];
+    int i;
 
     gettimeofday(&tv,NULL);
 
@@ -126,8 +137,26 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header,
       memset(bssid, 0, sizeof(bssid));
     }
 
+    for(i=0; i<EXCLUDE_SSID_COUNT; i++) {
+        if(0 == strncmp(EXCLUDE_SSID[i], bssid, sizeof(bssid))) {
+          // we do not want to print this
+          return;
+        }
+    }
+/*
     printf("%20lld len %-5d freq %4d rate %-5d s/n: %d %d seq %03x BSS %02x%02x%02x%02x%02x%02x | %s\n",
                  curr_ts, header->len, *pfreq, 500*(*prate), *psignal, *pnoise, *pseq >> 4,
+                 bss[0],bss[1],bss[2],bss[3],bss[4],bss[5], bssid);
+*/
+    char *color_start = "";
+    char *color_end = RESET;
+    if (*psignal > -40) {
+      color_start = BRIGHT_RED;
+    } else if (*psignal > -50) {
+      color_start = YELLOW;
+    }
+    printf("%20lld freq %4d %ssignal%s: %d noise: %d BSS %02x%02x%02x%02x%02x%02x | %s\n",
+                 curr_ts, *pfreq, color_start, color_end, *psignal, *pnoise,
                  bss[0],bss[1],bss[2],bss[3],bss[4],bss[5], bssid);
     fflush(stdout);
     
@@ -163,12 +192,18 @@ void capture(char *dev) {
     pcap_loop(pcap, 0, got_packet, 0);
   } else {
     fprintf(stderr, "Could not initialize a IEEE802_11_RADIO packet capture for interface %s\n", dev);
+    perror("wifi");
   }
 }
 
 int main(int argc, char *argv[]) {
   if(argc > 1) {
+    if (argc > 2) {
+	EXCLUDE_SSID = argv + 2;
+        EXCLUDE_SSID_COUNT = argc - 2;
+    }
     capture(argv[1]);
+
   } else {
     capture(NULL);
   }
