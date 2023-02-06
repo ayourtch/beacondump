@@ -4,6 +4,80 @@
 #include <pcap/pcap.h>
 #include "ieee802_11_radio.h"
 
+
+typedef struct {
+   int freq;
+   int channel;
+} one_freq2channel_t;
+
+one_freq2channel_t freq2channel[] = {
+{ 5160, 32 },
+{ 5170, 34 },
+{ 5180, 36 },
+{ 5190, 38 },
+{ 5200, 40 },
+{ 5210, 42 },
+{ 5220, 44 },
+{ 5230, 46 },
+{ 5240, 48 },
+{ 5250, 50 },
+{ 5260, 52 },
+{ 5270, 54 },
+{ 5280, 56 },
+{ 5290, 58 },
+{ 5300, 60 },
+{ 5310, 62 },
+{ 5320, 64 },
+{ 5340, 68 },
+{ 5480, 96 },
+{ 5500, 100 },
+{ 5510, 102 },
+{ 5520, 104 },
+{ 5530, 106 },
+{ 5540, 108 },
+{ 5550, 110 },
+{ 5560, 112 },
+{ 5570, 114 },
+{ 5580, 116 },
+{ 5590, 118 },
+{ 5600, 120 },
+{ 5610, 122 },
+{ 5620, 124 },
+{ 5630, 126 },
+{ 5640, 128 },
+{ 5660, 132 },
+{ 5670, 134 },
+{ 5680, 136 },
+{ 5690, 138 },
+{ 5700, 140 },
+{ 5710, 142 },
+{ 5720, 144 },
+{ 5745, 149 },
+{ 5755, 151 },
+{ 5765, 153 },
+{ 5775, 155 },
+{ 5785, 157 },
+{ 5795, 159 },
+{ 5805, 161 },
+{ 5815, 163 },
+{ 5825, 165 },
+{ 5835, 167 },
+{ 5845, 169 },
+{ 5855, 171 },
+{ 5865, 173 },
+{ 5875, 175 },
+{ 5885, 177 },
+{ 5900, 180 },
+{ 5910, 182 },
+{ 5920, 184 },
+{ 5935, 187 },
+{ 5940, 188 },
+{ 5945, 189 },
+{ 5960, 192 },
+{ 5980, 196 },
+  { 0, 0 },
+};
+
 int ieee80211_field_size[32] = {
   sizeof(uint64_t),   // IEEE80211_RADIOTAP_TSFT
   sizeof(uint8_t),    // IEEE80211_RADIOTAP_FLAGS
@@ -20,6 +94,17 @@ int ieee80211_field_size[32] = {
   sizeof(uint8_t),    // IEEE80211_RADIOTAP_DB_ANTSIGNAL
   sizeof(uint8_t),    // IEEE80211_RADIOTAP_DB_ANTNOISE
 };
+
+int convert_freq2_channel(int freq) {
+  int i = 0;
+  while (freq2channel[i].channel) {
+    if (freq == freq2channel[i].freq) {
+      return freq2channel[i].channel;
+    }
+    i++;
+  }
+  return freq;
+}
 
 void *get80211field(const u_char *pkt,
                     enum ieee80211_radiotap_type field)
@@ -155,8 +240,8 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header,
     } else if (*psignal > -50) {
       color_start = YELLOW;
     }
-    printf("%20lld freq %4d %ssignal%s: %d noise: %d BSS %02x%02x%02x%02x%02x%02x | %s\n",
-                 curr_ts, *pfreq, color_start, color_end, *psignal, *pnoise,
+    printf("%20lld channel %4d %ssignal%s: %d noise: %d BSS %02x%02x%02x%02x%02x%02x | %s\n",
+                 curr_ts, convert_freq2_channel(*pfreq), color_start, color_end, *psignal, *pnoise,
                  bss[0],bss[1],bss[2],bss[3],bss[4],bss[5], bssid);
     fflush(stdout);
     
