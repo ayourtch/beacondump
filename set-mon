@@ -5,6 +5,23 @@ set -eux
 # interfaces into monitor mode 
 # and set the same channel
 
+#	disable interfering processes
+PROCESSES="wpa_action\|wpa_supplicant\|wpa_cli\|dhclient\|ifplugd\|dhcdbd\|dhcpcd\|udhcpc\|NetworkManager\|knetworkmanager\|avahi-autoipd\|avahi-daemon\|wlassistant\|wifibox\|net_applet\|wicd-daemon\|wicd-client\|iwd"
+# shellcheck disable=SC2009
+badProcs=$(ps -A -o pid=PID -o comm=Name | grep "${PROCESSES}\|PID")
+# shellcheck disable=SC2009
+for pid in $(ps -A -o pid= -o comm= | grep ${PROCESSES} | awk '{print $1}'); do
+	command kill -19 "${pid}"
+#				(-19 = STOP)
+done
+
+echo
+echo '  The following processes have been stopped:'
+echo
+echo "${badProcs}"
+
+
+
 for i in $(seq 1 4); do 
   iface0=wlan$i
   chan=$1
@@ -16,5 +33,6 @@ for i in $(seq 1 4); do
   iw dev "$iface0" set channel "$chan" HT20
 #               iw dev "$iface0" set channel "$chan" HT40-
 #               iw dev "$iface0" set channel "$chan" 80MHz
+  sleep 1
 done
 
