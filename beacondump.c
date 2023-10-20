@@ -257,27 +257,85 @@ void capture(char *dev) {
   char errbuf[PCAP_ERRBUF_SIZE];
   struct pcap_pkthdr header;	/* The header that pcap gives us */
   const u_char *packet;		/* The actual packet */
+  pcap_if_t *devlist = 0;
+
+
+  int v_set_monitor_mode = 1;
+  int attempt_count = 3;
 
   if(NULL == dev) {
-    dev = pcap_lookupdev(errbuf);
-    if (dev == NULL) {
+    if (pcap_findalldevs(&devlist, errbuf)) {
       fprintf(stderr, "Couldn't find default device: %s\n", errbuf);
       exit(1);
     }
+    dev = devlist->name;
   }
 
-  pcap = pcap_create(dev, errbuf);
-  pcap_set_rfmon(pcap, 1);
-  pcap_set_promisc(pcap, 1);
-  pcap_set_buffer_size(pcap, 1 * 1024 * 1024);
-  pcap_set_timeout(pcap, 1);
-  pcap_set_snaplen(pcap, 16384);
-  pcap_activate(pcap);    
+  for(;;) {
+    printf("Attempting to open '%s', set_monitor_mode: %d...\n", dev, v_set_monitor_mode);
+
+    pcap = pcap_create(dev, errbuf);
+    if (!pcap) {
+      perror("pcap_set_create");
+    }
+    int res = pcap_set_rfmon(pcap, v_set_monitor_mode);
+    if (res) {
+      perror("pcap_set_rfmon");
+    }
+    res = pcap_set_promisc(pcap, 1);
+    if (res) {
+      perror("pcap_set_promisc");
+    }
+    res = pcap_set_buffer_size(pcap, 1 * 1024 * 1024);
+    if (res) {
+      perror("pcap_set_buffer_size");
+    }
+    res = pcap_set_timeout(pcap, 1);
+    if (res) {
+      perror("pcap_set_timeout");
+    }
+    res = pcap_set_snaplen(pcap, 16384);
+    if (res) {
+      pcap_perror(pcap, "pcap_set_snaplen");
+    }
+    res = pcap_activate(pcap);
+    if (res) {
+      pcap_perror(pcap, "pcap_activate");
+      switch(res) {
+	case PCAP_ERROR_RFMON_NOTSUP:
+	  printf("Trying without setting monitor mode...\n");
+	  v_set_monitor_mode = 0;
+	  break;
+        default:
+          printf("Unhandled error: %x\n", res);
+          exit(1);
+      }
+    } else {
+      printf("Open successful.\n");
+      break;
+    }
+    if (0 == --attempt_count) {
+      printf("Tried too many times. Giving up.");
+    }
+  }
+
   if(DLT_IEEE802_11_RADIO == pcap_datalink(pcap)) {
     pcap_loop(pcap, 0, got_packet, 0);
   } else {
     fprintf(stderr, "Could not initialize a IEEE802_11_RADIO packet capture for interface %s\n", dev);
     perror("wifi");
+  }
+}
+
+void list_devices() {
+  char errbuf[PCAP_ERRBUF_SIZE];
+  pcap_if_t *devlist = 0;
+  if (0 == pcap_findalldevs(&devlist, errbuf)) {
+    while(devlist) {
+      printf("%020s: %s\n", devlist->name,
+             devlist->description ? devlist->description : "[no description]");
+      devlist = devlist->next;
+    }
   }
 }
 
@@ -290,6 +348,7 @@ int main(int argc, char *argv[]) {
     capture(argv[1]);
 
   } else {
+    list_devices();
     capture(NULL);
   }
 }
