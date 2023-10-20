@@ -1,0 +1,20 @@
+#!/bin/sh
+set -eux
+
+# batch-set a few linux
+# interfaces into monitor mode 
+# and set the same channel
+
+for i in $(seq 1 4); do 
+  iface0=wlan$i
+  chan=$1
+  ip link set dev "$iface0" down
+  iw dev "$iface0" set monitor none
+  ip link set dev "$iface0" up 
+  iw dev "$iface0" set channel "$chan"
+
+  iw dev "$iface0" set channel "$chan" HT20
+#               iw dev "$iface0" set channel "$chan" HT40-
+#               iw dev "$iface0" set channel "$chan" 80MHz
+done
+
